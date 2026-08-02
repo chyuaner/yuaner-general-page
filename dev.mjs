@@ -22,6 +22,7 @@ import { buildAll } from './build.mjs';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST      = path.join(__dirname, 'dist');
 const SRC       = path.join(__dirname, 'src');
+const PUBLIC    = path.join(__dirname, 'public');
 const PORT      = Number(process.env.PORT || process.argv[2] || 3000);
 
 // ─── SSE client registry ─────────────────────────────────────────────────────
@@ -99,15 +100,27 @@ async function requestHandler(req, res) {
     });
     res.end(body);
   } catch {
-    // Try serving 404.html for missing pages
+    // Try serving from public/ directory if missing in dist/
+    const publicFilePath = path.join(PUBLIC, urlPath.replace(/^\//, ''));
     try {
-      const notFound = await fs.readFile(path.join(DIST, '404.html'), 'utf-8');
-      const body = notFound.replace('</body>', `${RELOAD_SCRIPT}\n</body>`);
-      res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-      res.end(body);
+      const publicRaw = await fs.readFile(publicFilePath);
+      res.writeHead(200, {
+        'Content-Type':  MIME[ext] || 'application/octet-stream',
+        'Cache-Control': 'no-store',
+      });
+      res.end(publicRaw);
+      return;
     } catch {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('404 Not Found');
+      // Try serving 404.html for missing pages
+      try {
+        const notFound = await fs.readFile(path.join(DIST, '404.html'), 'utf-8');
+        const body = notFound.replace('</body>', `${RELOAD_SCRIPT}\n</body>`);
+        res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+        res.end(body);
+      } catch {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('404 Not Found');
+      }
     }
   }
 }

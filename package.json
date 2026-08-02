@@ -10,7 +10,9 @@
     "build": "node build.mjs"
   },
   "dependencies": {
+    "eta": "^4.6.0",
     "gray-matter": "^4.0.3",
+    "html-minifier-terser": "^7.2.0",
     "marked": "^15.0.12",
     "sass": "^1.89.2"
   },

@@ -1,19 +1,44 @@
 <!DOCTYPE html>
-<html lang="{{lang}}">
+<html lang="<%= it.lang || 'zh-tw' %>">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" />
-  <title>{{title}}</title>
-  <link rel="icon" type="image/svg+xml" href="{{favicon}}" />
+  <meta name="theme-color" content="#27272a" />
+  <title><%= it.title %></title>
+  <link rel="icon" type="image/svg+xml" href="<%= it.favicon %>" />
   <style>
-{{styles}}
+<%~ it.styles %>
   </style>
 </head>
 <body>
+
+  <!-- ─── Navbar Component ─── -->
+  <%~ include("../components/navbar.html", it) %>
+
+  <!-- ─── Main ─── -->
   <main>
-    <span class="badge">網站建置中</span>
-{{content}}
+    <div class="container">
+      <% if (it.card_title || it.card) { %>
+        <div class="status-panel">
+          <% if (it.card_title) { %>
+            <div class="status-header">
+              <% if (it.card_icon) { %>
+                <%~ include("../components/card_icon.html", { icon: it.card_icon }) %>
+              <% } %>
+              <span class="status-label"><%= it.card_title %></span>
+            </div>
+          <% } %>
+          <%~ it.content %>
+        </div>
+      <% } else { %>
+        <%~ it.content %>
+      <% } %>
+    </div>
   </main>
+
+  <!-- ─── Footer Component ─── -->
+  <%~ include("../components/footer.html", it) %>
+
 </body>
 </html>

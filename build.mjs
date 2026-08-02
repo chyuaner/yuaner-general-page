@@ -1,14 +1,15 @@
 /**
- * build.mjs — Pure Node.js static site builder
+ * build.mjs — Pure Node.js static site builder with Eta Template Engine & Minifier
  *
  * Pipeline per page (.md in src/pages/):
  *   1. Parse frontmatter + markdown body   (gray-matter + marked)
  *   2. Compile shared SCSS                 (sass)
  *   3. Merge per-page SCSS if exists       (src/pages/<slug>.scss)
- *   4. Inline favicon SVG as data URI      (from src/assets/favicon.svg)
- *   5. Apply layout template               (src/layouts/<layout>.html)
- *   6. Inline <img> tags → base64 / SVG   (regex + fs)
- *   7. Write dist/<slug>.html              (single self-contained file)
+ *   4. Inline favicon SVG as data URI      (from public/favicon.svg)
+ *   5. Inline <img> tags → base64 / SVG   (regex + fs)
+ *   6. Render layout via Eta template      (Eta with if/include support)
+ *   7. Minify HTML (single-line output)    (html-minifier-terser)
+ *   8. Write dist/<slug>.html              (single self-contained minified file)
  */
 
 import fs from 'node:fs/promises';
@@ -17,6 +18,8 @@ import { fileURLToPath } from 'node:url';
 import matter from 'gray-matter';
 import { marked } from 'marked';
 import * as sass from 'sass';
+import { Eta } from 'eta';
+import { minify } from 'html-minifier-terser';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SRC       = path.join(__dirname, 'src');
@@ -25,6 +28,9 @@ const PAGES_DIR = path.join(SRC, 'pages');
 const LAYOUTS   = path.join(SRC, 'layouts');
 const STYLES    = path.join(SRC, 'styles');
 const PUBLIC    = path.join(__dirname, 'public');
+
+// Initialize Eta Engine targeting src directory for includes
+const eta = new Eta({ views: SRC, cache: false });
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -63,9 +69,6 @@ async function fileToDataUri(filePath) {
  * Inline all <img src="..."> tags in HTML.
  * - SVG src  → entire <img> replaced with raw <svg> markup
  * - Other    → src replaced with base64 data URI
- *
- * src paths are resolved relative to `distDir` (after build, for public assets).
- * We resolve against PUBLIC dir here since images come from public/.
  */
 async function inlineImages(html) {
   const imgRegex = /<img\b([^>]*?)>/gi;
@@ -100,13 +103,17 @@ async function inlineImages(html) {
     const r = results[i];
     if (r.type === 'skip') continue;
     if (r.type === 'svg' && r.svgContent) {
-      out = out.slice(0, index) + r.svgContent.trim() + out.slice(index + full.length);
+      out = out.slice(0, index) + r.svgContent.trim() + outputSlice(out, index, full.length);
     } else if (r.type === 'img' && r.dataUri) {
       const newTag = full.replace(srcRegex, `src="${r.dataUri}"`);
-      out = out.slice(0, index) + newTag + out.slice(index + full.length);
+      out = out.slice(0, index) + newTag + outputSlice(out, index, full.length);
     }
   }
   return out;
+}
+
+function outputSlice(str, index, length) {
+  return str.slice(index + length);
 }
 
 /** Build a favicon data URI from public/favicon.svg (inline SVG data URI). */
@@ -114,7 +121,6 @@ async function buildFaviconDataUri() {
   const svgPath = path.join(PUBLIC, 'favicon.svg');
   const svg = await tryRead(svgPath);
   if (!svg) return '';
-  // Encode SVG as a data URI (URL-encoded is more compatible than base64 for SVG)
   const encoded = svg
     .replace(/\n/g, ' ')
     .replace(/"/g, "'")
@@ -136,46 +142,49 @@ async function buildPage(mdFile, sharedCss, faviconDataUri) {
 
   // 2. Shared CSS + optional per-page SCSS
   const pageScssPath = path.join(PAGES_DIR, `${slug}.scss`);
-  const pageScss     = await compileScss(pageScssPath); // '' if missing
+  const pageScss     = await compileScss(pageScssPath);
   const allCss       = sharedCss + (pageScss ? '\n' + pageScss : '');
 
-  // 3. Load layout template
+  // 3. Render Layout Template via Eta
   const layoutName = (fm.layout || 'default').replace(/\.html$/, '');
-  const layoutFile = path.join(LAYOUTS, `${layoutName}.html`);
-  let template     = await tryRead(layoutFile);
-  if (!template) {
-    console.error(`[build] Layout not found: ${layoutFile}`);
-    process.exit(1);
-  }
+  const relativeLayoutPath = `layouts/${layoutName}.html`;
 
-  // 4. Substitute placeholders
-  let html = template
-    .replace('{{title}}',   fm.title || slug)
-    .replace('{{lang}}',    fm.lang  || 'zh-tw')
-    .replace('{{favicon}}', faviconDataUri)
-    .replace('{{styles}}',  allCss)
-    .replace('{{content}}', bodyHtml);
+  const templateData = {
+    ...fm,
+    title: fm.title || slug,
+    lang: fm.lang || 'zh-tw',
+    favicon: faviconDataUri,
+    styles: allCss,
+    content: bodyHtml,
+  };
 
-  // 5. Inline <img> tags
+  let html = await eta.renderAsync(relativeLayoutPath, templateData);
+
+  // 4. Inline all <img> tags across the entire rendered HTML (including Layout/Components)
   html = await inlineImages(html);
+
+  // 5. Minify HTML (single line output for direct Nginx config use)
+  const minifiedHtml = await minify(html, {
+    collapseWhitespace: true,
+    removeComments: true,
+    minifyCSS: true,
+    removeRedundantAttributes: true,
+    removeEmptyAttributes: true,
+  });
 
   // 6. Write output
   const outPath = path.join(DIST, `${slug}.html`);
-  await fs.writeFile(outPath, html, 'utf-8');
-  console.log(`[build] ✓ dist/${slug}.html`);
+  await fs.writeFile(outPath, minifiedHtml, 'utf-8');
+  console.log(`[build] ✓ dist/${slug}.html (minified)`);
 }
 
 export async function buildAll() {
   await fs.mkdir(DIST, { recursive: true });
 
-  // Pre-compile shared SCSS once
   const sharedScssPath = path.join(STYLES, 'shared.scss');
   const sharedCss      = await compileScss(sharedScssPath);
-
-  // Pre-build favicon data URI once
   const faviconDataUri = await buildFaviconDataUri();
 
-  // Find all .md pages
   const entries = await fs.readdir(PAGES_DIR);
   const mdFiles = entries
     .filter(f => f.endsWith('.md'))
