@@ -6,9 +6,16 @@ on:
       - master
 
 permissions:
-  contents: write
+  contents: write   # for creating releases
+  pages: write      # for deploying to GitHub Pages
+  id-token: write   # for OIDC token (required by deploy-pages)
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
 
 jobs:
+  # ─── Job 1: Build → Release + Pages artifact ────────────────────────────────
   build-and-release:
     runs-on: ubuntu-latest
 
@@ -28,15 +35,38 @@ jobs:
       - name: Build dist
         run: npm run build
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.sha }}
-          name: Release ${{ github.sha }}
-          body: |
-            Automated build from commit `${{ github.sha }}`.
+      - name: Get short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
-            Download the `dist/` HTML files from the release assets below.
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2.3.2
+        with:
+          tag_name: build-${{ steps.sha.outputs.short }}
+          name: "Build ${{ steps.sha.outputs.short }}"
+          body: |
+            Automated build from commit [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}).
+
+            Download the `.html` files from the release assets below.
+            Each file is a self-contained single-page HTML (no external dependencies).
           files: dist/**
           generate_release_notes: false
           make_latest: true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/
+
+  # ─── Job 2: Deploy to GitHub Pages ──────────────────────────────────────────
+  deploy-pages:
+    needs: build-and-release
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
