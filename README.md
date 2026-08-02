@@ -5,7 +5,7 @@
 ## 核心特點
 
 1. **單一自給自足 HTML 檔**：所有 SCSS 樣式、圖片 (JPEG/PNG)、SVG 圖示與 Favicon 均在構建時自動編譯並轉為 Base64 / SVG 內聯 (Inline) 內嵌至 `.html` 中，零外部 HTTP 請求。
-2. **單行極致壓縮 (Minified Single-line)**：`dist/` 產出的 `.html` 檔案經過 `html-minifier-terser` 壓縮為單一行，可直接複製寫死於 Nginx 設定檔中作 `return 200 "..."` ResponseBody 輸出。
+2. **Nginx 與編輯器友善的精簡輸出**：`dist/` 產出的 `.html` 檔案經過適度壓縮與行數分流，**最高單行長度控制在 900 字元以內**，完全解決編輯器「10,000 字元過長唯讀警告」，同時兼具小體積與貼入 Nginx `return 200 "..."` 多行字串輸出的相容性。
 3. **極輕量與純粹建置**：放棄重型前端框架，採用純 Node.js + `Eta` 模板引擎 + `marked` 構建，支援邏輯判斷 (`if`) 與組件拆分 (`include`)。
 4. **即時開發熱重載**：提供 `npm run dev` 開發伺服器，基於 OS inotify 檔案監聽與 SSE (Server-Sent Events) 技術，檔案儲存即自動即時重載頁面。
 

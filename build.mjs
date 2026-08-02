@@ -163,7 +163,7 @@ async function buildPage(mdFile, sharedCss, faviconDataUri) {
   // 4. Inline all <img> tags across the entire rendered HTML (including Layout/Components)
   html = await inlineImages(html);
 
-  // 5. Minify HTML (single line output for direct Nginx config use)
+  // 5. Minify HTML to single line for direct Nginx config use
   const minifiedHtml = await minify(html, {
     collapseWhitespace: true,
     removeComments: true,

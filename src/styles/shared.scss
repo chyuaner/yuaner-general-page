@@ -45,32 +45,17 @@
 /* ─── Dark Mode tokens ───────────────────────────────── */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg-gradient: linear-gradient(
-      149deg,
-      rgba(40, 42, 54, 1)   0%,
-      rgba(51, 54, 69, 1)  13%,
-      rgb(53, 58, 82)      30%,
-      rgba(44, 47, 62, 1)  53%,
-      rgba(40, 42, 54, 1)  93%,
-      rgba(62, 54, 71, 1) 100%
-    );
-
-    --card-bg: rgba(44, 47, 62, 0.85);
-    --card-border: rgba(255, 255, 255, 0.07);
-    --card-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 8px 32px rgba(0,0,0,0.25);
-
+    --bg-gradient: linear-gradient(149deg,#282a36 0%,#333445 13%,#353a52 30%,#2c2f3e 53%,#282a36 93%,#3e3647 100%);
+    --card-bg: rgba(44,47,62,.85);
+    --card-border: rgba(255,255,255,.07);
+    --card-shadow: 0 1px 3px rgba(0,0,0,.3),0 8px 32px rgba(0,0,0,.25);
     --text-primary: #e2e8f0;
     --text-secondary: #a0aec0;
     --text-muted: #718096;
-
-    /* dracula/dark-mode primary: A2BD8C (soft green) */
     --accent: #a2bd8c;
-    --accent-light: rgba(162, 189, 140, 0.12);
-    --accent-border: rgba(162, 189, 140, 0.3);
-
+    --accent-light: rgba(162,189,140,.12);
+    --accent-border: rgba(162,189,140,.3);
     --dot-color: #a2bd8c;
-
-    /* footer dark — nord1 #3b4252 */
     --footer-bg: #3b4252;
     --footer-text: oklch(89.925% .016 262.749);
   }
@@ -115,7 +100,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
@@ -250,6 +234,13 @@ main {
   color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+.status-panel hr {
+  border: none;
+  height: 1px;
+  margin: 0 1.25rem;
+  background: linear-gradient(to right, transparent, var(--card-border) 20%, var(--card-border) 80%, transparent);
 }
 
 /* ─── Footer ─────────────────────────────────────────── */
