@@ -143,7 +143,7 @@ async function main() {
   const server = http.createServer(requestHandler);
   server.listen(PORT, () => {
     console.log(`\n[dev] 🚀  http://localhost:${PORT}`);
-    console.log('[dev] Watching src/ for changes...\n');
+    console.log('[dev] Watching src/ and public/ for changes...\n');
   });
 
   // Watch src/ — rebuild + notify on any change
@@ -164,7 +164,7 @@ async function main() {
   }, 150);
 
   chokidar
-    .watch(SRC, { ignoreInitial: true })
+    .watch([SRC, PUBLIC], { ignoreInitial: true })
     .on('change', rebuild)
     .on('add',    rebuild)
     .on('unlink', rebuild);

@@ -116,18 +116,14 @@ function outputSlice(str, index, length) {
   return str.slice(index + length);
 }
 
-/** Build a favicon data URI from public/favicon.svg (inline SVG data URI). */
+/** Build a favicon data URI from public/favicon.svg (base64 SVG data URI). */
 async function buildFaviconDataUri() {
   const svgPath = path.join(PUBLIC, 'favicon.svg');
   const svg = await tryRead(svgPath);
   if (!svg) return '';
-  const encoded = svg
-    .replace(/\n/g, ' ')
-    .replace(/"/g, "'")
-    .replace(/#/g, '%23')
-    .replace(/</g, '%3C')
-    .replace(/>/g, '%3E');
-  return `data:image/svg+xml,${encoded}`;
+  const normalized = svg.trim();
+  const base64 = Buffer.from(normalized, 'utf-8').toString('base64');
+  return `data:image/svg+xml;base64,${base64}`;
 }
 
 // ─── Core Build ─────────────────────────────────────────────────────────────
