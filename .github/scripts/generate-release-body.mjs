@@ -79,7 +79,7 @@ server {
 
 #### Step1. 下載你需要的檔案到Nginx的實體檔案目錄
 
-請先 `cd` 到你要放置的當前目錄（例如： `/var/www/html`），再執行以下指令
+請先 \`cd\` 到你要放置的當前目錄（例如： \`/var/www/html\`），再執行以下指令
 `;
 
 for (const file of files) {
