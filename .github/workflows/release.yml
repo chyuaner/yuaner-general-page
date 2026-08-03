@@ -70,3 +70,33 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        
+      - name: Purge Cloudflare Cache
+        env:
+          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_CACHE_PREFIX: ${{ secrets.CLOUDFLARE_CACHE_PREFIX }}
+        run: |
+          if [ -z "${CLOUDFLARE_ZONE_ID}" ] || [ -z "${CLOUDFLARE_API_TOKEN}" ] || [ -z "${CLOUDFLARE_CACHE_PREFIX}" ]; then
+            echo "Cloudflare cache purge skipped: missing required secrets."
+            exit 0
+          fi
+
+          # e.g. "yuaner.tw/yuaner-general-page/" → "yuaner.tw/yuaner-general-page"
+          PREFIX="${CLOUDFLARE_CACHE_PREFIX#https://}"
+          PREFIX="${PREFIX#http://}"
+          PREFIX="${PREFIX%/}"
+
+          echo "Purging Cloudflare cache for prefix: ${PREFIX}"
+
+          RESPONSE="$(curl -sS -X POST "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/purge_cache" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data "{\"prefixes\":[\"${PREFIX}\"]}")"
+
+          echo "${RESPONSE}"
+
+          if ! echo "${RESPONSE}" | grep -q '"success":true'; then
+            echo "Cloudflare cache purge failed."
+            exit 1
+          fi
