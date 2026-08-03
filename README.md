@@ -14,6 +14,11 @@
 在這個前提下，不能有任何外連檔案，必須單一一份 .html 檔案就要解決（不能外連JS和CSS）。
 然後又受限Nginx直接大字串輸出限制（最多4082個字），只要內含圖片就一定爆，當然JS邏輯也不能太多（不過我最後處理到無JS了）。
 
+## 使用說明
+可直接使用Github Release已建置完成的 index.html 檔案，只須下載單一檔案即可。
+
+具體使用說明，請參考[Github Release頁面](https://github.com/chyuaner/yuaner-general-page/releases/latest/)
+
 ## 核心特點
 
 * **單一自給自足 HTML 檔**：所有 SCSS 樣式均在構建時編譯並內嵌至 `.html` 中，零外部 HTTP 請求。
@@ -78,6 +83,11 @@ Layout 位於 `src/layouts/default.html`，支援 Eta 模板語法：
   ```
 
 ---
+
+## 開發說明
+1. git clone 這個專案，並cd進入
+2. npm install
+3. npm run dev
 
 ## 指令說明
 
