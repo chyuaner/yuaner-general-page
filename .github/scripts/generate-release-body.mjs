@@ -1,15 +1,27 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { execSync } from 'node:child_process';
 
 // ─── File Description Mapping (Key-by-Value) ──────────────────────────────
 const FILE_DESCRIPTIONS = {
   'index.html': '通用「網站建置中」頁面',
-  '404.html': '通用「404 Not Found」頁面'
+  '404.html': '通用「404 Not Found」頁面',
 };
 
 const repo = process.env.GITHUB_REPOSITORY || 'chyuaner/yuaner-general-page';
-const shaFull = process.env.GITHUB_SHA || 'master';
+
+let shaFull = process.env.GITHUB_SHA;
+if (!shaFull) {
+  try {
+    shaFull = execSync('git rev-parse HEAD', { encoding: 'utf-8' }).trim();
+  } catch {
+    shaFull = 'unknown';
+  }
+}
 const shaShort = shaFull.slice(0, 7);
+
+// 當前 Release 的 Tag 名稱 (需與 workflow 建立 release 時的 tag_name 保持一致)
+const releaseTag = process.env.RELEASE_TAG || `build-${shaShort}`;
 
 // UTC+8 Date formatting: YYYYMMDD
 const now = new Date();
@@ -29,10 +41,13 @@ files.sort((a, b) => {
   return a.localeCompare(b);
 });
 
+const serverUrl = process.env.GITHUB_SERVER_URL || 'https://github.com';
+const commitUrl = `${serverUrl}/${repo}/commit/${shaFull}`;
+
 let body = `${yyyymmdd} 更新版本: ${shaShort}
 ===
 
-以 ${shaFull} 版本自動建置
+以 [\`${shaFull}\`](${commitUrl}) 版本自動建置
 
 所有已產出的每一份HTML檔案，都可自給自足單獨使用，無需依賴任何對外連網使用外部資源，與內部其他任何圖片、CSS、JS檔案等，都在構件編譯時，皆已內嵌在HTML檔案中。
 
@@ -59,7 +74,7 @@ ${content}
 body += `#### Step2. 貼到Nginx設定檔
 Nginx設定檔基本範例：
 
-\`\`\`
+\`\`\`nginx
 server {
     listen 80;
     # server_name localhost;
@@ -84,10 +99,13 @@ server {
 
 for (const file of files) {
   const desc = FILE_DESCRIPTIONS[file] ? ` ${FILE_DESCRIPTIONS[file]}` : '';
-  const rawUrl = `https://raw.githubusercontent.com/${repo}/master/dist/${file}`;
+  // 指向最新的 Release 的下載網址
+  // const releaseUrl = `https://github.com/${repo}/releases/latest/download/${file}`;
+  // 指向當前特定 Release Tag 的下載網址
+  const releaseUrl = `${serverUrl}/${repo}/releases/download/${releaseTag}/${file}`;
   body += `##### ${file}${desc}
-\`\`\`curl
-curl -o ${file} ${rawUrl}
+\`\`\`bash
+curl -LO ${releaseUrl}
 \`\`\`
 
 `;
@@ -96,7 +114,7 @@ curl -o ${file} ${rawUrl}
 body += `#### Step2. 貼到Nginx設定檔
 Nginx設定檔基本範例：
 
-\`\`\`
+\`\`\`nginx
 server {
     listen 80;
     # server_name localhost;

@@ -7,7 +7,9 @@
   },
   "scripts": {
     "dev": "node dev.mjs",
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "release-notes": "node build.mjs && node .github/scripts/generate-release-body.mjs",
+    "build:release-notes": "node build.mjs && node .github/scripts/generate-release-body.mjs"
   },
   "dependencies": {
     "eta": "^4.6.0",
