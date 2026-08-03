@@ -1,5 +1,6 @@
 # build output
 dist/
+release_notes.md
 
 # dependencies
 node_modules/
