@@ -39,17 +39,22 @@ jobs:
         id: sha
         run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
+      - name: Get DateTime
+        id: dt
+        run: echo "datetime=$(date +'%y%m%d%H%M')" >> "$GITHUB_OUTPUT"
+
       - name: Generate Release Body
         env:
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          RELEASE_TAG: ${{ steps.dt.outputs.datetime }}-build-${{ steps.sha.outputs.short }}
         run: node .github/scripts/generate-release-body.mjs
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2.2.1
         with:
-          tag_name: build-${{ steps.sha.outputs.short }}
-          name: "Build ${{ steps.sha.outputs.short }}"
+          tag_name: ${{ steps.dt.outputs.datetime }}-build-${{ steps.sha.outputs.short }}
+          name: "${{ steps.dt.outputs.datetime }} Build ${{ steps.sha.outputs.short }}"
           body_path: release_notes.md
           files: dist/**
           generate_release_notes: false
