@@ -4,7 +4,7 @@
 
 ## 核心特點
 
-1. **單一自給自足 HTML 檔**：所有 SCSS 樣式、圖片 (JPEG/PNG)、SVG 圖示與 Favicon 均在構建時自動編譯並轉為 Base64 / SVG 內聯 (Inline) 內嵌至 `.html` 中，零外部 HTTP 請求。
+1. **單一自給自足 HTML 檔**：所有 SCSS 樣式均在構建時編譯並內嵌至 `.html` 中，零外部 HTTP 請求。
 2. **Nginx 與編輯器友善的精簡輸出**：`dist/` 產出的 `.html` 檔案經過適度壓縮與行數分流，**最高單行長度控制在 900 字元以內**，完全解決編輯器「10,000 字元過長唯讀警告」，同時兼具小體積與貼入 Nginx `return 200 "..."` 多行字串輸出的相容性。
 3. **極輕量與純粹建置**：放棄重型前端框架，採用純 Node.js + `Eta` 模板引擎 + `marked` 構建，支援邏輯判斷 (`if`) 與組件拆分 (`include`)。
 4. **即時開發熱重載**：提供 `npm run dev` 開發伺服器，基於 OS inotify 檔案監聽與 SSE (Server-Sent Events) 技術，檔案儲存即自動即時重載頁面。
@@ -20,7 +20,7 @@
 title: 網站建置中
 layout: default
 card_title: 網站建置中
-card_icon: construction
+card_dot: '#a3be8c'
 ---
 ```
 
@@ -30,25 +30,7 @@ card_icon: construction
 | `layout` | `string` | 對應 `src/layouts/` 底下的 HTML 模板（預設為 `default`） |
 | `card` | `boolean` | 設定為 `true` 時，將內容包覆在卡片外框 (`status-panel`) 中（無 Header Bar） |
 | `card_title` | `string` | 設定卡片頂點標題，自動開啟卡片外框與 Header Bar |
-| `card_icon` | `string` | 指定 Header Bar 左側圖示 key（未指定則不顯示圖示） |
-
----
-
-## 內建 `card_icon` 圖示對照表
-
-系統在 `src/components/card_icon.html` 中預設提供了以下圖示：
-
-| Icon Key | 圖示外觀與語意 | 建議使用場景 |
-| :--- | :--- | :--- |
-| `dot` | 🟢 動態脈衝綠點 | 服務在線/即時監控/預設狀態 |
-| `construction` | 🔧 扳手圖示 | 網站建置中、預設站台、系統維護中 |
-| `error` | ⚠️ 錯誤警示三角 | 500 / 502 / 503 伺服器應用程式錯誤 |
-| `notfound` | 😟 搜尋無結果 / 苦臉圖示 | 404 Not Found 找不到頁面 |
-| `info` | ℹ️ 資訊圓圈 | 系統公告、說明資訊頁面 |
-| `server` | 🖥 伺服器機架圖示 | 主機狀態、VHost 機構說明 |
-| `lock` | 🔒 鎖頭圖示 | 403 Forbidden、權限受限、私有站台 |
-| `warning` | ⚡ 警示圓圈圖示 | 一般系統警告、注意事項 |
-| `check` | ✅ 勾選圓圈圖示 | 部署成功、狀態正常 |
+| `card_dot` | `string` | Header Bar 左側狀態圓點的 CSS 顏色（例如 `#a3be8c`），未指定則不顯示圓點 |
 
 ---
 
@@ -66,10 +48,8 @@ Layout 位於 `src/layouts/default.html`，支援 Eta 模板語法：
     <div class="status-panel">
       <% if (it.card_title) { %>
         <div class="status-header">
-          <% if (it.card_icon && it.icons && it.icons[it.card_icon]) { %>
-            <%~ it.icons[it.card_icon] %>
-          <% } else { %>
-            <span class="status-dot"></span>
+          <% if (it.card_dot) { %>
+            <span class="status-dot" style="background:<%= it.card_dot %>"></span>
           <% } %>
           <span class="status-label"><%= it.card_title %></span>
         </div>
@@ -96,3 +76,13 @@ Layout 位於 `src/layouts/default.html`，支援 Eta 模板語法：
   npm run build
   ```
   將 `src/pages/*.md` 編譯並單行壓縮輸出至 `dist/*.html`。
+
+---
+
+## 自動化部署
+
+Push 至 `master` 分支後，GitHub Actions 會自動：
+
+1. 執行 `npm run build` 產生 `dist/` 檔案
+2. 以 commit SHA 建立 GitHub Release 並上傳 `.html` 附件
+3. 部署至 GitHub Pages

@@ -22,7 +22,6 @@ import { buildAll } from './build.mjs';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST      = path.join(__dirname, 'dist');
 const SRC       = path.join(__dirname, 'src');
-const PUBLIC    = path.join(__dirname, 'public');
 const PORT      = Number(process.env.PORT || process.argv[2] || 3000);
 
 // ─── SSE client registry ─────────────────────────────────────────────────────
@@ -45,19 +44,6 @@ const RELOAD_SCRIPT = `
   es.onerror   = () => { es.close(); /* silently stop on build error */ };
 })();
 </script>`;
-
-// ─── MIME map ─────────────────────────────────────────────────────────────────
-
-const MIME = {
-  '.html': 'text/html; charset=utf-8',
-  '.css':  'text/css',
-  '.js':   'application/javascript',
-  '.svg':  'image/svg+xml',
-  '.png':  'image/png',
-  '.jpg':  'image/jpeg',
-  '.ico':  'image/x-icon',
-  '.webp': 'image/webp',
-};
 
 // ─── HTTP server ──────────────────────────────────────────────────────────────
 
@@ -88,39 +74,24 @@ async function requestHandler(req, res) {
     res.writeHead(403); res.end('Forbidden'); return;
   }
 
-  const ext = path.extname(filePath);
-  const isHtml = ext === '.html';
-
   try {
-    const raw = await fs.readFile(filePath, isHtml ? 'utf-8' : null);
-    const body = isHtml ? raw.replace('</body>', `${RELOAD_SCRIPT}\n</body>`) : raw;
+    const raw = await fs.readFile(filePath, 'utf-8');
+    const body = raw.replace('</body>', `${RELOAD_SCRIPT}\n</body>`);
     res.writeHead(200, {
-      'Content-Type':  MIME[ext] || 'application/octet-stream',
+      'Content-Type':  'text/html; charset=utf-8',
       'Cache-Control': 'no-store',
     });
     res.end(body);
   } catch {
-    // Try serving from public/ directory if missing in dist/
-    const publicFilePath = path.join(PUBLIC, urlPath.replace(/^\//, ''));
+    // Try serving 404.html for missing pages
     try {
-      const publicRaw = await fs.readFile(publicFilePath);
-      res.writeHead(200, {
-        'Content-Type':  MIME[ext] || 'application/octet-stream',
-        'Cache-Control': 'no-store',
-      });
-      res.end(publicRaw);
-      return;
+      const notFound = await fs.readFile(path.join(DIST, '404.html'), 'utf-8');
+      const body = notFound.replace('</body>', `${RELOAD_SCRIPT}\n</body>`);
+      res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end(body);
     } catch {
-      // Try serving 404.html for missing pages
-      try {
-        const notFound = await fs.readFile(path.join(DIST, '404.html'), 'utf-8');
-        const body = notFound.replace('</body>', `${RELOAD_SCRIPT}\n</body>`);
-        res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-        res.end(body);
-      } catch {
-        res.writeHead(404, { 'Content-Type': 'text/plain' });
-        res.end('404 Not Found');
-      }
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('404 Not Found');
     }
   }
 }
@@ -143,7 +114,7 @@ async function main() {
   const server = http.createServer(requestHandler);
   server.listen(PORT, () => {
     console.log(`\n[dev] 🚀  http://localhost:${PORT}`);
-    console.log('[dev] Watching src/ and public/ for changes...\n');
+    console.log('[dev] Watching src/ for changes...\n');
   });
 
   // Watch src/ — rebuild + notify on any change
@@ -164,7 +135,7 @@ async function main() {
   }, 150);
 
   chokidar
-    .watch([SRC, PUBLIC], { ignoreInitial: true })
+    .watch(SRC, { ignoreInitial: true })
     .on('change', rebuild)
     .on('add',    rebuild)
     .on('unlink', rebuild);

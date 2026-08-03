@@ -6,14 +6,13 @@
   <meta name="robots" content="noindex, nofollow" />
   <meta name="theme-color" content="#27272a" />
   <title><%= it.title %></title>
-  <link rel="icon" type="image/svg+xml" href="<%= it.favicon %>" />
   <style>
 <%~ it.styles %>
   </style>
 </head>
 <body>
 
-  <!-- ─── Navbar Component ─── -->
+  <!-- ─── Navbar ─── -->
   <%~ include("../components/navbar.html", it) %>
 
   <!-- ─── Main ─── -->
@@ -23,8 +22,8 @@
         <div class="status-panel">
           <% if (it.card_title) { %>
             <div class="status-header">
-              <% if (it.card_icon) { %>
-                <%~ include("../components/card_icon.html", { icon: it.card_icon }) %>
+              <% if (it.card_dot) { %>
+                <span class="status-dot" style="background:<%= it.card_dot %>"></span>
               <% } %>
               <span class="status-label"><%= it.card_title %></span>
             </div>
@@ -36,9 +35,6 @@
       <% } %>
     </div>
   </main>
-
-  <!-- ─── Footer Component ─── -->
-  <%~ include("../components/footer.html", it) %>
 
 </body>
 </html>

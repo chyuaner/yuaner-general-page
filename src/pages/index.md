@@ -2,7 +2,7 @@
 title: 全新尚未有內容的網站
 layout: default
 card_title: 網站建置中
-card_icon: dot
+card_dot: '#a3be8c'
 ---
 
 # 全新尚未有內容的網站
