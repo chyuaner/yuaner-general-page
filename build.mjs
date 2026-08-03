@@ -25,6 +25,12 @@ const DIST      = path.join(__dirname, 'dist');
 const PAGES_DIR = path.join(SRC, 'pages');
 const STYLES    = path.join(SRC, 'styles');
 
+// Nginx NGX_CONF_BUFFER Limit Constants
+const NGINX_MAX_CHARS = 4082;
+const COLOR_RED   = '\x1b[1;31m';
+const COLOR_GREEN = '\x1b[32m';
+const COLOR_RESET = '\x1b[0m';
+
 // Initialize Eta Engine targeting src directory for includes
 const eta = new Eta({ views: SRC, cache: false });
 
@@ -81,7 +87,28 @@ async function buildPage(mdFile, sharedCss) {
   // 5. Write output
   const outPath = path.join(DIST, `${slug}.html`);
   await fs.writeFile(outPath, minifiedHtml, 'utf-8');
-  console.log(`[build] ✓ dist/${slug}.html (minified)`);
+
+  // 6. Check size against Nginx NGX_CONF_BUFFER limit (4082 chars)
+  const charCount = minifiedHtml.length;
+  if (charCount > NGINX_MAX_CHARS) {
+    // 1. 本地終端機（Terminal）顯示紅字
+    console.error(
+      `${COLOR_RED}[WARNING] dist/${slug}.html 超過 Nginx return 200 上限！` +
+      ` (目前: ${charCount} Bytes / 上限: ${NGINX_MAX_CHARS} Bytes)${COLOR_RESET}`
+    );
+
+    // 2. 如果在 GitHub Actions CI 環境中，自動觸發 GitHub Native Warning UI
+    if (process.env.GITHUB_ACTIONS) {
+      console.log(
+        `::warning file=dist/${slug}.html,line=1,title=Nginx Size Limit Exceeded::` +
+        `dist/${slug}.html 長度為 ${charCount} Bytes，已超過 Nginx return 200 安全限制 (${NGINX_MAX_CHARS} Bytes)！`
+      );
+    }
+  } else {
+    console.log(
+      `[build] ${COLOR_GREEN}✓${COLOR_RESET} dist/${slug}.html (minified: ${charCount}/${NGINX_MAX_CHARS} Bytes)`
+    );
+  }
 }
 
 export async function buildAll() {
